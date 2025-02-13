@@ -1,0 +1,14 @@
+plugins:
+  extractors:
+    - name: tap-gitlab
+      variant: meltano
+      pip_url: git+https://gitlab.com/meltano/tap-gitlab.git
+  loaders:
+    - name: target-postgres
+      variant: datamill-co
+      pip_url: singer-target-postgres
+  utilities:
+    - name: dbt-snowflake
+      variant: dbt-labs
+    - name: airflow
+      variant: apache

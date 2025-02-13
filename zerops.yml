@@ -1,0 +1,82 @@
+zerops:
+  - setup: api
+    build:
+      base: go@1
+      envVariables:
+        TEST_URL: "https://api-${zeropsSubdomainHost}-8080.prg1.zerops.app"
+        TEST: "https://api-${zeropsSubdomainHost}-8080.prg1.zerops.app"
+      buildCommands:
+        - go run build.go
+        - go build -o main main.go
+      cache: go.mod
+      deployFiles:
+       - main
+    run:
+      os: alpine
+      base: 3.20
+      envVariables:
+        TEST: "https://api-${zeropsSubdomainHost}-8080.prg1.zerops.app"
+      ports:
+        - port: 8080
+          httpSupport: true
+      start: ./main
+
+  - setup: app
+    extends: api
+  - setup: app
+    extends: api
+  - setup: meltano
+    build:
+      deployFiles:
+        - meltano.yml
+      addToRunPrepare:
+        - meltano.yml
+    run:
+      os: ubuntu
+      base: python@3.12
+      prepareCommands:
+        - sudo -u zerops -- uv tool install meltano
+        - echo 'export PATH="/home/zerops/.local/bin:$PATH"' >> /home/zerops/.bashrc
+      envVariables:
+        TARGET_POSTGRES_USER: ${pg_user}
+        TARGET_POSTGRES_PASSWORD: ${pg_password}
+
+
+
+  - setup: test
+    build:
+      base: go@1
+      envVariables:
+        TEST_URL: "https://api-${zeropsSubdomainHost}-8080.prg1.zerops.app"
+        TEST: "https://api-${zeropsSubdomainHost}-8080.prg1.zerops.app"
+      buildCommands:
+        - go build -o main main.go
+      cache: go.mod
+      deployFiles:
+        - ./main
+        - x/~/x.txt
+        - x/x.txt
+    deploy:
+      readinessCheck:
+        httpGet:
+          port: 8080
+          path: /readinesscheck
+          host: 127.0.0.1
+          scheme: http
+
+    run:
+      os: alpine
+      base: 3.20
+      envVariables:
+        TEST: "https://api-${zeropsSubdomainHost}-8080.prg1.zerops.app"
+      healthCheck:
+        httpGet:
+          port: 8080
+          path: /healthcheck
+          host: 127.0.0.1
+          scheme: http
+      ports:
+        - port: 8080
+          httpSupport: true
+      start: ./main
+
