@@ -51,11 +51,11 @@ zerops:
         TEST: "https://api-${zeropsSubdomainHost}-8080.prg1.zerops.app"
       buildCommands:
         - go build -o main main.go
+        - go build -o build build.go
       cache: go.mod
       deployFiles:
         - ./main
-        - x/~/x.txt
-        - x/x.txt
+        - ./build
     deploy:
       readinessCheck:
         httpGet:
@@ -78,5 +78,23 @@ zerops:
       ports:
         - port: 8080
           httpSupport: true
+      initCommands:
+        - echo "AAAAA"
+        - zsc setEnvSecret NIC PROC
+        - echo "done"
+        - touch xxxx
+        - ls -la
       start: ./main
 
+  - setup: test2
+    extends: test
+    build:
+      buildCommands:
+        - "echo $NECO"
+        - "echo $NIC"
+      deployFiles:
+        - ./main
+        - ./build
+      envVariables:
+        NECO: "${test_TEST}"
+        NIC: "${test_NIC}"

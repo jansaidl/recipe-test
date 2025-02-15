@@ -5,18 +5,24 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"time"
 )
 
 func main() {
-	name := "TEST"
-	value, exists := os.LookupEnv(name)
-	fmt.Printf("%s - %s - %v\n", name, value, exists)
 
 	for i := 0; i < 10; i++ {
-		do(i, value)
-		time.Sleep(time.Second)
+		fmt.Fprintf(os.Stderr, "hele to je chyba %d\n", i)
+		fmt.Fprintf(os.Stdout, "hele to je chyba %d\n", i)
 	}
+
+	os.Exit(1)
+	//name := "TEST"
+	//value, exists := os.LookupEnv(name)
+	//fmt.Printf("%s - %s - %v\n", name, value, exists)
+	//
+	//for i := 0; i < 10; i++ {
+	//	do(i, value)
+	//	time.Sleep(time.Second)
+	//}
 }
 func do(i int, value string) {
 	response, err := http.Get(value)

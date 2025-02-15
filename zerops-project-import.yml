@@ -4,10 +4,11 @@ project:
     - zerops-recipe
 
 services:
-  - hostname: meilisearch
+  - hostname: test
     type: 22.04
     enableSubdomainAccess: true
-    buildFromGit: https://github.com/jansaidl/recipe-meilisearch
-    zeropsSetup: bla
-    envSecrets:
-      MEILI_MASTER_KEY: <@generateRandomString(<16>)>
+    buildFromGit: https://github.com/jansaidl/recipe-test
+  - hostname: test2
+    type: 22.04
+    enableSubdomainAccess: true
+    buildFromGit: https://github.com/jansaidl/recipe-test
