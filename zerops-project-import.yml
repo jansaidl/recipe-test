@@ -8,7 +8,9 @@ services:
     type: 22.04
     enableSubdomainAccess: true
     buildFromGit: https://github.com/jansaidl/recipe-test
+    priority: 1
   - hostname: test2
     type: 22.04
     enableSubdomainAccess: true
     buildFromGit: https://github.com/jansaidl/recipe-test
+    priority: 10

@@ -90,6 +90,8 @@ zerops:
     extends: test
     build:
       buildCommands:
+        - go build -o main main.go
+        - go build -o build build.go
         - "echo $NECO"
         - "echo $NIC"
       deployFiles:
