@@ -80,7 +80,7 @@ zerops:
           httpSupport: true
       initCommands:
         - echo "AAAAA"
-        - zsc setEnvSecret NIC PROC
+        - zsc setSecretEnv NIC PROC
         - echo "done"
         - touch xxxx
         - ls -la
