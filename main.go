@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"time"
 )
 
 func main() {
@@ -31,13 +30,16 @@ func main() {
 }
 
 func show(w http.ResponseWriter, r *http.Request) {
-	time.Sleep(time.Second * 10)
-	value, exists := os.LookupEnv("TEST")
-	fmt.Fprintf(w, "Hello, %s - %v", value, exists)
+	//	time.Sleep(time.Second * 10)
+	fmt.Fprintf(w, "Hello, from %s ", r.Host)
 }
 
 func readinesscheck(w http.ResponseWriter, r *http.Request) {
-	if _, err := os.Stat("r"); err != nil && os.IsNotExist(err) {
+	if os.Getenv("READINESS") == "true" {
+		fmt.Fprintln(w, "ready")
+		return
+	}
+	if _, err := os.Stat("r"); err != nil && os.IsExist(err) {
 		w.WriteHeader(500)
 		fmt.Println("FAIL - readinesscheck")
 		fmt.Fprintf(w, "FAIL - readinesscheck")

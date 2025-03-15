@@ -14,7 +14,7 @@ func main() {
 		fmt.Fprintf(os.Stdout, "hele to je chyba %d\n", i)
 	}
 
-	os.Exit(1)
+	//os.Exit(1)
 	//name := "TEST"
 	//value, exists := os.LookupEnv(name)
 	//fmt.Printf("%s - %s - %v\n", name, value, exists)

@@ -1,4 +1,25 @@
 zerops:
+  - setup: mailpit
+    build:
+      base: go@1
+      envVariables:
+        TEST_URL: "https://api-${zeropsSubdomainHost}-8080.prg1.zerops.app"
+        TEST: "https://api-${zeropsSubdomainHost}-8080.prg1.zerops.app"
+      buildCommands:
+        - go build -o main main.go
+      cache: go.mod
+      deployFiles:
+       - main
+    run:
+      os: alpine
+      base: 3.20
+      envVariables:
+        TEST: "https://api-${zeropsSubdomainHost}-8080.prg1.zerops.app"
+#      ports:
+#        - port: 8080
+#          httpSupport: true
+      start: ./main
+
   - setup: api
     build:
       base: go@1
@@ -53,6 +74,7 @@ zerops:
         - go build -o main main.go
         - go build -o build build.go
       cache: go.mod
+      addToRunPrepare: test.sh
       deployFiles:
         - ./main
         - ./build
@@ -69,6 +91,7 @@ zerops:
       base: 3.20
       envVariables:
         TEST: "https://api-${zeropsSubdomainHost}-8080.prg1.zerops.app"
+        READINESS: "true"
       healthCheck:
         httpGet:
           port: 8080
@@ -78,6 +101,13 @@ zerops:
       ports:
         - port: 8080
           httpSupport: true
+      prepareCommands:
+        - pwd
+        - ls -la
+        - ls -laR /root
+        - chmod +x test.sh
+        - ./test.sh
+
       initCommands:
         - echo "AAAAA"
         - zsc setSecretEnv NIC PROC
@@ -85,6 +115,7 @@ zerops:
         - touch xxxx
         - ls -la
       start: ./main
+
 
   - setup: test2
     extends: test
@@ -100,3 +131,183 @@ zerops:
       envVariables:
         NECO: "${test_TEST}"
         NIC: "${test_NIC}"
+
+  - setup: llmresearcher
+    build:
+      deployFiles: ./zerops.yml
+      addToRunPrepare: ./
+    run:
+      base: docker@latest
+      prepareCommands:
+        - docker build -t llm-researcher .
+      envVariables:
+        WORKERS: 2
+      start: docker run --network=host llm-researcher
+      ports:
+        - port: 8000
+          httpSupport: true
+
+
+  - setup: docker
+    run:
+      base: docker@26.1
+      # download and cache docker image
+      prepareCommands:
+        - docker image pull crccheck/hello-world
+      # start docker, --network=host needed
+      start: docker run --network=host crccheck/hello-world
+
+      # what ports docker exposes
+      # and whether it supports http traffic
+      ports:
+        - port: 8000
+          httpSupport: true
+
+  - setup: metabase
+    run:
+      base: java@21
+      os: ubuntu
+      prepareCommands:
+        - |
+          curl -L "https://downloads.metabase.com/v${METABASE_VERSION}/metabase.jar" -o /var/www/metabase.jar
+          chown zerops:zerops /var/www/metabase.jar
+          chmod 644 /var/www/metabase.jar
+      envVariables:
+        METABASE_VERSION: 0.48.0
+        JAVA_OPTS: "-Xmx3584m -Xms2048m"
+        MB_TYPE: postgres
+        MB_DB_USER: ${db_user}
+        MB_DB_PORT: ${db_port}
+        MB_DB_HOST: ${db_hostname}
+        MB_DB_PASS: ${db_password}
+        MB_DB_NAME: ${db_dbName}
+      ports:
+        - port: 3000
+          httpSupport: true
+      start: java ${JAVA_OPTS} --add-opens java.base/java.nio=ALL-UNNAMED -jar /var/www/metabase.jar
+
+  - setup: phpneco
+    build:
+      os: ubuntu
+      base:
+        - php@8.1
+      deployFiles:
+      - ./index.php
+      - ./public/index.php
+    deploy:
+      readinessCheck:
+        httpGet:
+          port: 80
+          path: /
+        failureTimeout: 5m0s
+        retryPeriod: 10s
+    run:
+      os: ubuntu
+      base: php-apache@8.1
+      documentRoot: public
+      initCommands:
+        - sudo a2enmod headers
+        - sudo systemctl restart apache2
+      envVariables:
+        APP_NAME: "CzechitasApp"
+        APP_DEBUG: true
+        APP_ENV: production
+        APP_URL: ${zeropsSubdomain}
+        APP_FORCE_URL: false
+        HTTPS_ENABLE: false
+
+        DB_CONNECTION: mysql
+        DB_HOST: db
+        DB_PORT: 3306
+        DB_DATABASE: db
+        DB_USERNAME: ${db_user}
+        DB_PASSWORD: ${db_password}
+
+        MAIL_MAILER: array
+        MAIL_FROM_ADDRESS: "info@czechitas-app.cz"
+        MAIL_FROM_NAME: "Czechitas"
+        MAIL_SUBJECT_ADD: "Czechitas"
+        MAIL_REPLY_TO_ADDRESS: "info@czechitas-app.cz"
+        MAIL_REPLY_TO_NAME: "Czechitas"
+
+        LOG_CHANNEL: syslog
+        LOG_LEVEL: debug
+        LOG_STACK: single
+
+        CACHE_DRIVER: file
+        CACHE_STORE: file
+        QUEUE_CONNECTION: sync
+
+        SESSION_DRIVER: file
+        SESSION_ENCRYPT: false
+        SESSION_PATH: /
+        SESSION_LIFETIME: 120
+
+
+  - setup: phpneco83
+    extends: phpneco
+    run:
+      base: php-apache@8.3
+
+  - setup: phpneco84
+    extends: phpneco
+    run:
+      base: php-apache@8.4
+
+  - setup: bun
+    build:
+      base: bun@latest
+      buildCommands:
+        - bun install --frozen-lockfile
+        - bun build main.ts --compile --outfile server
+      deployFiles:
+         -  ./app/server
+         -  ./server
+    run:
+      base: alpine
+      start: ./server
+
+
+
+  - setup: proxy
+    run:
+      base: static
+      routing:
+        redirects:
+          - from: /*
+            to: ${teststorage_apiUrl}/${teststorage_bucketName}/
+            preserveQuery: true
+            preservePath: true
+            status: 301
+
+
+  - setup: failme
+    build:
+      base:
+        - php@8.1
+        - nodejs@18
+      cache:
+        - ./index.php
+      buildCommands:
+        - nodejs --version
+        - php --version
+        - echo AAA
+      deployFiles: ./
+    deploy:
+      readinessCheck:
+        httpGet:
+          port: 80
+          path: /
+        failureTimeout: 5m0s
+        retryPeriod: 10s
+    run:
+      base: php-apache@8.1
+      healthCheck:
+        httpGet:
+          port: 80
+          path: /
+        failureTimeout: 3m0s
+        disconnectTimeout: 1m0s
+        recoveryTimeout: 30s
+        execPeriod: 10s
+
